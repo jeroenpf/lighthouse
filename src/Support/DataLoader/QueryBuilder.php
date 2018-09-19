@@ -112,13 +112,19 @@ class QueryBuilder
             $relationQueries->shift()->getQuery()
         );
 
+        $dbManager = app('db');
+        $currentConnection = $dbManager->connection()->getName();
+        $dbManager->connection($relatedModel->getConnection()->getName());
+
         /** @var \Illuminate\Database\Query\Builder $baseQuery */
-        $baseQuery = app('db')->query();
+        $baseQuery = $dbManager->query();
         $fromExpression = '('.$unitedRelations->toSql().') as '.$baseQuery->grammar->wrap($this->tableAlias($relatedTable));
         $results = $baseQuery->select()
             ->from($baseQuery->raw($fromExpression))
             ->setBindings($unitedRelations->getBindings())
             ->get();
+
+        $dbManager->connection($currentConnection);
 
         $hydrated = $this->hydrate($relatedModel, $relation, $results);
         $collection = $this->loadDefaultWith($relatedModel->newCollection($hydrated));
